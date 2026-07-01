@@ -50,6 +50,82 @@ services:
       timeout: 5s
       retries: 5
 
+  content-service:
+    build: ./apps/content-service
+    container_name: content-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/content_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  engagement-service:
+    build: ./apps/engagement-service
+    container_name: engagement-service
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/engagement_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
+      PORT: 3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  media-service:
+    build: ./apps/media-service
+    container_name: media-service
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/media_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: 3003
+      MEDIA_WEBHOOK_SECRET: mock-secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build: ./apps/notification-service
+    container_name: notification-service
+    ports:
+      - "3004:3004"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: 3004
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  gateway:
+    build: ./apps/gateway
+    container_name: gateway
+    ports:
+      - "3000:3000"
+    environment:
+      CONTENT_SERVICE_URL: http://content-service:3001
+      ENGAGEMENT_SERVICE_URL: http://engagement-service:3002
+      MEDIA_SERVICE_URL: http://media-service:3003
+      PORT: 3000
+    depends_on:
+      - content-service
+      - engagement-service
+      - media-service
+
 volumes:
   rabbitmq_data:
   redis_data:
